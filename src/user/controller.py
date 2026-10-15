@@ -1,4 +1,4 @@
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, Request
 from src.user.dtos import UserSchema, LoginSchema
 from sqlalchemy.orm import Session
 from src.user.models import UserModel
@@ -6,6 +6,8 @@ from pwdlib import PasswordHash
 from src.utils.settings import settings
 from datetime import datetime, timedelta
 import jwt
+from jwt.exceptions import InvalidTokenError
+
 
 password_hash = PasswordHash.recommended()
 
@@ -54,11 +56,44 @@ def login(body: LoginSchema, db:Session):
         raise HTTPException(status_code = status.HTTP_401_UNAUTHORIZED, detail="Invalid password")
 
 
-    exp_time = datetime.now() + timedelta(minutes=settings.EXP_TIME)
+    exp_time = datetime.now() + timedelta(seconds=40)
 
-    token = jwt.encode({"user_id": user.id, "exp": exp_time}, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    token = jwt.encode(
+        {
+            "user_id": user.id,
+            "exp": exp_time
+        },
+        settings.SECRET_KEY,
+        algorithm=settings.ALGORITHM
+    )
 
     return {"token": token}
 
+
+#TOKEN send:-
+
+def is_authenticated(request: Request, db: Session):
+    try:
+        token = request.headers.get("Authorization")
+
+        if not token:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You are not authorized to access this resource")
+
+        token = token.split(" ")[-1]
+        data = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+
+        user_id = data.get("user_id")
+        
+        
+
+
+        user = db.query(UserModel).filter(UserModel.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="You are not authorized")
+
+
+        return user
+    except InvalidTokenError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
 
