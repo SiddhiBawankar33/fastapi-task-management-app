@@ -2,6 +2,7 @@ from src.tasks.dtos import TaskSchema
 from sqlalchemy.orm import Session
 from src.tasks.models import TaskModel
 from fastapi import HTTPException
+from src.utils.helpers import is_authenticated
 
 def create_task(body: TaskSchema, db: Session):
     data = body.model_dump()

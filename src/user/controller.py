@@ -56,7 +56,7 @@ def login(body: LoginSchema, db:Session):
         raise HTTPException(status_code = status.HTTP_401_UNAUTHORIZED, detail="Invalid password")
 
 
-    exp_time = datetime.now() + timedelta(seconds=40)
+    exp_time = datetime.now() + timedelta(minutes = settings.EXP_TIME)
 
     token = jwt.encode(
         {
